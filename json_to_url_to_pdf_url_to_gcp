@@ -1,0 +1,218 @@
+exports.sendUniversalDoc = async (req, res) => {
+  try { 
+    // const fileBuffer = req.files[0].buffer;
+    // const base64String = fileBuffer.toString('base64');
+    // const base64Buffer = Buffer.from(base64String, 'base64');
+    // const workbook = xlsx.read(base64Buffer, { type: 'buffer' });
+    // const sheetName = workbook.SheetNames[0];
+    // const worksheet = workbook.Sheets[sheetName];
+    // const jsonData = xlsx.utils.sheet_to_json(worksheet);
+    const jsonData = [
+      {
+          "POLICY_NO": "71584487/DD0009/100116702/00",
+          "Customer_Name": "PREMANANDA SAHOO",
+          "CUSTOMER_ID": "FAS1000-39930"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100117019/00",
+          "Customer_Name": "SHANTILAL PAWARA",
+          "CUSTOMER_ID": "FAS1000-40250"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100118680/00",
+          "Customer_Name": "KISHOR KALOKHE",
+          "CUSTOMER_ID": "FAS1000-40701"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103240/00",
+          "Customer_Name": "RESHAMA RESHAMA",
+          "CUSTOMER_ID": "FAS1000-3937"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103436/00",
+          "Customer_Name": "AAMIR KHAN",
+          "CUSTOMER_ID": "FAS1000-3040"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103438/00",
+          "Customer_Name": "SYEDA HUSSAIN",
+          "CUSTOMER_ID": "FAS1000-3046"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103459/00",
+          "Customer_Name": "MOHD JAWAD",
+          "CUSTOMER_ID": "FAS1000-3109"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103713/00",
+          "Customer_Name": "PRAVEEN SULTANA",
+          "CUSTOMER_ID": "FAS1000-3598"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103379/00",
+          "Customer_Name": "ASHOK SHARMA",
+          "CUSTOMER_ID": "FAS1000-2857"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100103455/00",
+          "Customer_Name": "SHAIKH SUBAMIYA",
+          "CUSTOMER_ID": "FAS1000-3096"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100105138/00",
+          "Customer_Name": "RANGREJ VASIMHUSEN",
+          "CUSTOMER_ID": "FAS1000-7479"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100105154/00",
+          "Customer_Name": "KARNATI LAKSHMI",
+          "CUSTOMER_ID": "FAS1000-7751"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100105195/00",
+          "Customer_Name": "JASON SAMUEL",
+          "CUSTOMER_ID": "FAS1000-8020"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100104928/00",
+          "Customer_Name": "ANJU KUMARI",
+          "CUSTOMER_ID": "FAS1000-4740"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100110698/00",
+          "Customer_Name": "SHAILENDRA JAISWAL",
+          "CUSTOMER_ID": "FAS1000-34002"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100110665/00",
+          "Customer_Name": "MAN CHANDEL",
+          "CUSTOMER_ID": "FAS1000-33989"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100108646/00",
+          "Customer_Name": "S RAVICHANDIRAN",
+          "CUSTOMER_ID": "FAS1000-32105"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100108533/00",
+          "Customer_Name": "AMBATI NAGARJUNA",
+          "CUSTOMER_ID": "FAS1000-31996"
+      },
+      {
+          "POLICY_NO": "71584487/DD0009/100112223/00",
+          "Customer_Name": "NITIN SONI",
+          "CUSTOMER_ID": "FAS1000-35301"
+      }
+  ]
+  
+  
+
+    const batchSize = 1;
+    const pdfUrls = await processData(jsonData, batchSize);
+
+    console.log('All PDFs saved:', pdfUrls);
+  } catch(err) {
+    console.log(err);
+    res.status(500).send('Internal Server Error');
+  }
+};
+
+
+async function processData(jsonData, batchSize) {
+ try{ const batches = [];
+  for (let i = 0; i < jsonData.length; i += batchSize) {
+      batches.push(jsonData.slice(i, i + batchSize));
+  }
+
+  // const pdfUrls = [];
+  for (const batch of batches) {
+      const batchPdfUrls = await processDataBatch(batch);
+      // pdfUrls.push(...batchPdfUrls);
+  }
+
+  // return pdfUrls;
+} catch(error){
+  console.log(error)
+}
+}
+
+
+
+async function processDataBatch(batch) {
+ try { const pdfUrls = [];
+console.log(batch,"batch")
+  for (const data of batch) {
+    console.log(data,"from process batch")
+      const generateToken = await axios.post('https://universal-sompo.ind.in/LifeBoxCOIAPI/api/Master/GenerateToken', {
+          "UserName": "LIFEBOX",
+          "Password": "$Welcome@#123"
+      });
+
+      const getPolicyUrl = await axios.post('https://universal-sompo.ind.in/LifeBoxCOIAPI/api/LBCOI/GetLBPolicyDetails', {
+          "Certificate_No": data.POLICY_NO,
+          "TokenId": generateToken.data.TokenId
+      });
+
+    
+      const pdfData = getPolicyUrl.data.URL;
+      console.log(pdfData,"pdf for" ,data.CUSTOMER_ID)
+
+      const pdfUrl = await convertUrlToPdf(pdfData,data.CUSTOMER_ID,data.POLICY_NO)
+      // const fileName = `${data.POLICY_NO}.pdf`;
+
+   
+      // const uploadToGcp = await uploadToGCP(data.CUSTOMER_ID);
+      // pdfUrls.push(pdfUrl);
+  }
+
+  // return pdfUrls;
+} catch(err){
+  console.log(err);
+}
+}
+
+async function convertUrlToPdf(pdfData,id,certificate_no){
+    await fs.mkdir( 'temp', { recursive: true });
+     const browser = await puppeteer.launch();
+     const page = await browser.newPage()
+      await page.goto(pdfData,{waitUntil:'networkidle0'});
+      await page.pdf({ path: `temp/${id}-universal.pdf`, format: 'A4' });
+      await browser.close();
+
+      const newFileName = `${id}-universal-policy-${generateRandomString()}.pdf`;
+      await storage.bucket('flashaid').upload(path.join('temp', `${id}-universal.pdf`), {
+        destination: `coi/${newFileName}`,
+      });
+    
+      const [signedUrl] = await storage.bucket('flashaid').file(`coi/${newFileName}`).getSignedUrl({
+        action: 'read',
+        expires: Date.now() + (1000 * 60 * 60 * 24 * 365 * 2500), 
+    });
+    const publicUrl = extractPublicUrl(signedUrl);
+    console.log(publicUrl, id)
+
+      const db = getFirestore();
+              const serviceRef = db.collection('Insurance');
+              const querySnapshot = await serviceRef.where('id', '==', id).get();
+  
+              querySnapshot.forEach(async (doc) => {
+                  const docId = doc.id;
+                  const links = doc.data().links || {};
+                  links.UNI_COI = `https://storage.googleapis.com${publicUrl}`;
+                  const plan = doc.data().plan || {};
+                  plan.certificate = certificate_no; 
+                  await serviceRef.doc(docId).update({ links,plan});
+                  console.log("done for",id)
+              });
+    await fs.rmdir('temp', { recursive: true }); 
+}
+
+function generateRandomString() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+
+function extractPublicUrl(signedUrl) {
+  const url = new URL(signedUrl);
+  return url.pathname;
+}
